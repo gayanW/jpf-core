@@ -112,9 +112,44 @@
   
   <target name="-compile-classes" if="have_classes" depends="-compile-annotations,-compile-main" >
     <mkdir dir="build/classes"/>
-    <javac srcdir="src/classes" destdir="build/classes" includeantruntime="false"
+    <!--<javac srcdir="src/classes" destdir="build/classes" includeantruntime="false"-->
+           <!--debug="${debug}" deprecation="${deprecation}">-->
+      <!--<compilerarg value="-Xlint:all,-deprecation"/>-->
+      <!--<classpath>-->
+        <!--<path refid="lib.path"/>-->
+        <!--<pathelement location="build/annotations"/>-->
+      <!--</classpath>-->
+    <!--</javac>-->
+    <javac modulesourcepath="src/classes" destdir="build/classes" includeantruntime="false"
            debug="${debug}" deprecation="${deprecation}">
       <compilerarg value="-Xlint:all,-deprecation"/>
+
+      <!--<compilerarg value="&#45;&#45;add-exports"/>-->
+      <!--<compilerarg value="java.base/sun.reflect.annotation=ALL-UNNAMED"/>-->
+
+      <compilerarg value="--patch-module"/>
+      <compilerarg value="java.base=src/classes/java.base"/>
+      <!--add-exports might be better choice-->
+      <compilerarg value="--add-reads"/>
+      <compilerarg value="java.base=jdk.unsupported,gov.nasa,ALL-UNNAMED"/>
+      <!-- ALL-UNNAMED is added to prevent
+      error: package gov.nasa.jpf.annotation does not exist-->
+
+      <!--error: package sun.net.www.protocol.http is not visible-->
+      <!--error: package sun.reflect.annotation is not visible-->
+      <compilerarg value="--add-exports"/>
+      <compilerarg value="java.base/sun.net.www.protocol.http=gov.nasa"/>
+      <compilerarg value="--add-exports"/>
+      <compilerarg value="java.base/sun.reflect.annotation=gov.nasa,jdk.unsupported"/>
+
+      <!--<compilerarg value="&#45;&#45;add-reads"/>-->
+      <!--<compilerarg value="java.base=gov.nasa"/>-->
+
+      <compilerarg value="--patch-module"/>
+      <compilerarg value="java.logging=src/classes/java.logging"/>
+
+      <compilerarg value="--patch-module"/>
+      <compilerarg value="jdk.unsupported=src/classes/jdk.unsupported"/>
       <classpath>
         <path refid="lib.path"/>
         <pathelement location="build/annotations"/>
