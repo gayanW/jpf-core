@@ -112,9 +112,23 @@
   
   <target name="-compile-classes" if="have_classes" depends="-compile-annotations,-compile-main" >
     <mkdir dir="build/classes"/>
-    <javac srcdir="src/classes" destdir="build/classes" includeantruntime="false"
+    <javac modulesourcepath="src/classes" destdir="build/classes" includeantruntime="false"
            debug="${debug}" deprecation="${deprecation}">
       <compilerarg value="-Xlint:all,-deprecation"/>
+
+      <compilerarg value="--patch-module"/>
+      <compilerarg value="java.base=src/classes/java.base"/>
+
+      <compilerarg value="--patch-module"/>
+      <compilerarg value="java.logging=src/classes/java.logging"/>
+
+      <compilerarg value="--add-exports"/>
+      <compilerarg value="java.base/sun.net.www.protocol.http=gov.nasa.jpf"/>
+
+      <compilerarg value="--add-reads"/>
+      <compilerarg value="java.base=gov.nasa.jpf,ALL-UNNAMED"/>
+      <!-- ALL-UNNAMED is added, so java.base could read gov.nasa.jpf.annotation -->
+
       <classpath>
         <path refid="lib.path"/>
         <pathelement location="build/annotations"/>
