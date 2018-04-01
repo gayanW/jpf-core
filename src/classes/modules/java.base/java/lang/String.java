@@ -45,7 +45,9 @@ public final class String
 implements java.io.Serializable, Comparable<String>, CharSequence {
 
 	/** The value is used for character storage. */
-	private final char value[];
+	private final byte value[];
+
+	private final byte coder;
 
 	/** Cache the hash code for the string */
 	private int hash; // Default to 0
@@ -57,26 +59,30 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 			new ObjectStreamField[0];
 
 	public String() {
-		this.value = new char[0];
+		this.value = "".value;
+		this.coder = "".coder;
 	}
 
 	public String(String original) {
 		this.value = original.value;
+		this.coder = original.coder;
 		this.hash = original.hash;
 	}
 
 	public String(char value[]) {
-		this.value = Arrays.copyOf(value, value.length);
+		this.coder = 1;
+		this.value = StringUTF16.toBytes(value, 0, value.length);
 	}
 
 	public String(char value[], boolean share) {
-		this.value = Arrays.copyOf(value, value.length);
+		this(value);
 	}
 	
 	public String(char value[], int offset, int count) {
 		String proxy=init(value,offset,count);
 		this.value=proxy.value;
 		this.hash=proxy.hash;
+		this.coder=proxy.coder;
 	}
 
 	private native String init(char[] value, int offset, int count);
@@ -85,6 +91,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		String proxy=init(codePoints,offset,count);
 		this.value=proxy.value;
 		this.hash=proxy.hash;
+		this.coder=proxy.coder;
 	}
 
 	private native String init(int[] codePoints, int offset, int count);
@@ -94,6 +101,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		String proxy=init(ascii,hibyte,offset,count);
 		this.value=proxy.value;
 		this.hash=proxy.hash;
+		this.coder=proxy.coder;
 	}
 
 	private native String init(byte ascii[], int hibyte, int offset, int count);
@@ -109,6 +117,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		String proxy=init(bytes,offset,length,charsetName);
 		this.value=proxy.value;
 		this.hash=proxy.hash;
+		this.coder=proxy.coder;
 	}
 
 	private native String init(byte bytes[], int offset, int length, String charsetName);
@@ -129,7 +138,9 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 			throw new StringIndexOutOfBoundsException(offset + length);
 		}
 
-		this.value =  StringCoding.decode(cset, x, offset, length);
+		StringCoding.Result result =  StringCoding.decode(cset, x, offset, length);
+		this.value =  result.value;
+		this.coder =  result.coder;
 	}
 
 	public String(byte bytes[], String charsetName)
@@ -145,6 +156,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		String proxy=init(bytes,offset,length);
 		this.value=proxy.value;
 		this.hash=proxy.hash;
+		this.coder=proxy.coder;
 	}
 
 
@@ -158,12 +170,14 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 	public String(StringBuffer x) {
 		synchronized(x) {
 			this.value = Arrays.copyOf(x.getValue(), x.length());
+			this.coder = 1;
 		}
 	}
 
 
 	public String(StringBuilder x) {
 		this.value = Arrays.copyOf(x.getValue(), x.length());
+		this.coder = 1;
 	}
 
 	@Deprecated
@@ -182,7 +196,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		if ((index < 0) || (index >= value.length)) {
 			throw new StringIndexOutOfBoundsException(index);
 		}
-		return value[index];
+		return StringUTF16.charAt(this.value, index);
 	}
 
 	native public int codePointAt(int index);
@@ -202,7 +216,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 		if (x == null){
 			throw new NullPointerException();
 		}
-		return StringCoding.encode(x, value, 0, value.length);
+		return StringCoding.encode(x, (byte) 1, this.value);
 	}
 
 	native public byte[] getBytes();
@@ -216,7 +230,7 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
 	}
 
   native static boolean equals0 (char[] a, char[] b, int len);
-  
+
   /**
    * we can't turn this into a native method at top level since it would require a bunch
    * of round trips
@@ -233,11 +247,12 @@ implements java.io.Serializable, Comparable<String>, CharSequence {
     
     // we can do that natively, too
 		if (charSequence instanceof AbstractStringBuilder) {
-      return equals0( value,  ((AbstractStringBuilder) charSequence).getValue(), value.length);
+			byte[] val = ((AbstractStringBuilder) charSequence).getValue();
+			return StringUTF16.contentEquals(this.value, val, this.length());
 		}
 
 		// generic CharSequence - expensive
-    char v[] = value;
+    byte v[] = value;
     for (int n=value.length, i=0; n >= 0; n--,i++){
       if (v[i] != charSequence.charAt(i)){
         return false;
