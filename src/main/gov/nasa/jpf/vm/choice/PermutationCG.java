@@ -32,10 +32,6 @@ public class PermutationCG extends ChoiceGeneratorBase<int[]>{
   protected PermutationGenerator pg;
   protected int[] permutation;
   
-  public PermutationCG (PermutationGenerator pg){
-    this.pg = pg;
-  }
-
   public PermutationCG (String id, PermutationGenerator pg){
     super(id);
     this.pg = pg;
